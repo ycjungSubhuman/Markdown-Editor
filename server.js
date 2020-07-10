@@ -102,10 +102,16 @@ app.get('/', function (req, res) {
     }); 
 })
 
+if(process.argv.length < 3) {
+    console.error('Provide session name');
+    process.exit(1);
+}
+const nameSession = process.argv[2];
+
 app.post('/parseMdStr', jsonParser, function (req, res) {
     console.log(req.body);
     if (req.body.saveOrPreview === "save") {
-        var filename = "public/temp_md/" + req.body.randomName + ".md";
+        var filename = "public/saves/"+`${nameSession}.md`;
         console.log(filename);
         fs.writeFile(filename, req.body.fakeMd, function (err) {
             if(err) {
