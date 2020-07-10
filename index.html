@@ -12,6 +12,11 @@
         <link type="text/css" rel="stylesheet" href="public/css/github-markdown.css">
         <link type="text/css" rel="stylesheet" href="public/css/pilcrow.css">
         <link type="text/css" rel="stylesheet" href="public/css/hljs-github.min.css"/>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@intergula/renderpost@1.1.4/dist/rp.css">
+
+        <script src="https://cdn.jsdelivr.net/npm/@intergula/renderpost@1.1.4/dist/bundle.js"></script>
     </head>
     <body>
         <header>
@@ -135,18 +140,14 @@ You can find source code [here](https://github.com/daveying/Markdown-Editor).</d
                         editor.setValue(localStorage.getItem('md-content'));
                         editor.gotoLine(1);
                     }
-                    editor.getSession().on('change', function(e) {
-                        var mdStr = editor.getValue();
-                        var old = markdownDivElem.cloneNode(true);
-                        markdownDivElem.innerHTML = md.render(mdStr);
+                    editor.setKeyboardHandler('ace/keyboard/vim');
 
-                        var allold = old.getElementsByTagName("*");
-                        var allnew = markdownDivElem.getElementsByTagName("*");
-                        for(var i = 0, max = Math.min(allold.length, allnew.length); i < max; i++) {
-                            if(!allold[i].isEqualNode(allnew[i])) {
-                                previewElem.scrollTop = allnew[i].offsetTop;
-                            }
-                        }
+                    ace.config.loadModule('ace/keyboard/vim', (m) => {
+                        const VimApi = m.CodeMirror.Vim;
+                        VimApi.defineEx("write", "w", (cm, input) => {
+                            previewClickHandler();
+                            saveClickHandler();
+                        });
                     });
                     bind();
                 }
@@ -154,6 +155,13 @@ You can find source code [here](https://github.com/daveying/Markdown-Editor).</d
                 function bind() {
                     cacheButtonElem.onclick = previewClickHandler;
                     saveButtonElem.onclick = saveClickHandler;
+                    document.onkeydown = (e) => {
+                        if(e.ctrlKey && e.which === 83) {
+                            previewClickHandler();
+                            saveClickHandler();
+                            return false;
+                        }
+                    };
                     smDropMenuElem.onclick = smFontClieckedHandler;
                     mdDropMenuElem.onclick = mdFontClieckedHandler;
                     lsDropMenuElem.onclick = lgFontClieckedHandler;
@@ -161,21 +169,36 @@ You can find source code [here](https://github.com/daveying/Markdown-Editor).</d
                 function previewClickHandler() {
                     var mdStr = editor.getValue();
                     fakeMdElem.innerHTML = mdStr;
-                    //console.log(mdStr);
                     localStorage.setItem('md-content', mdStr);
                     saveOrPreviewElem.value = "preview";
-                    //document.forms["mdStr"].submit();
-                    markdownDivElem.innerHTML = md.render(mdStr);
+                    markdownDivElem.innerHTML = '';
+                    renderpost.render_rp(markdownDivElem, mdStr)
                 }
                 function saveClickHandler() {
                     var mdStr = editor.getValue();
                     fakeMdElem.innerHTML = mdStr;
                     //console.log(mdStr);
                     localStorage.setItem('md-content', mdStr);
-                    saveOrPreviewElem.value = "save";
+
                     var d = new Date();
-                    randomNameElem.value = d.getTime().toString() + Math.round((Math.random() * 10000)).toString();
-                    document.forms["mdStr"].submit();
+                    const randomName = d.getTime().toString() + Math.round((Math.random() * 10000)).toString();
+                    /*
+                    const data = new FormData();
+                    data.append('saveOrPreview', "save");
+                    data.append('randomName', randomName);
+                    data.append('fakeMd', mdStr);
+                    */
+                    const data = {
+                        saveOrPreview: "save",
+                        randomName,
+                        fakeMd: mdStr
+                    };
+
+                    const req = new XMLHttpRequest();
+                    req.onreadysteatechange = () => {};
+                    req.open('POST', '/parseMdStr', true);
+                    req.setRequestHeader('Content-type', 'application/json');
+                    req.send(JSON.stringify(data));
                 }
                 function smFontClieckedHandler() {
                     editorElem.style.fontSize='12px';

@@ -6,7 +6,8 @@ var bodyParser = require('body-parser');
 var MarkdownIt = require('markdown-it');
 var hljs = require('highlight.js');
 
-var urlencodedParser = bodyParser.urlencoded({extended: false});
+//var urlencodedParser = bodyParser.urlencoded({extended: false});
+var jsonParser = bodyParser.json();
 var md = new MarkdownIt({
   html: true,
   linkify: false,
@@ -101,29 +102,17 @@ app.get('/', function (req, res) {
     }); 
 })
 
-app.post('/parseMdStr', urlencodedParser, function (req, res) {
-    var result = md.render(req.body.fakeMd);
-    //console.log(result);
+app.post('/parseMdStr', jsonParser, function (req, res) {
+    console.log(req.body);
     if (req.body.saveOrPreview === "save") {
         var filename = "public/temp_md/" + req.body.randomName + ".md";
         console.log(filename);
         fs.writeFile(filename, req.body.fakeMd, function (err) {
-            res.download(filename, function (err) {
-                if (err) {
-                    console.log(err);
-                }
-                res.end();
-            });
-        });
-    }
-    else {
-        res.write(html_head + result + html_tail, function (err) {
-            if (err) {
-                console.log(err);
+            if(err) {
+                console.error(err);
             }
-            res.end();
+            res.write('');
         });
-
     }
 })
 
